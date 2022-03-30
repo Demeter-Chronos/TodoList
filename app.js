@@ -38,6 +38,14 @@ const item3 = new Item({
 //Here we create an array to add the default items of the database to
 const defaultItems = [item1, item2, item3]
 
+//The new dynamic lists created need database documents created for them and thats implemented below
+const listSchema = new mongoose.Schema({
+    name: String,
+    items: [itemsSchema]
+});
+
+const List = new mongoose.model('list', listSchema);
+
 //We use mongoose function insertMany to insert the contents of the array into the database
 // Item.insertMany(defaultItems, (err) => {
 //     if (err) {
@@ -75,6 +83,7 @@ app.get('/', (req, res) => {
 
 app.post('/', (req, res) => {
     const newItem = req.body.newListItem
+    const listName = req.body.list
 
     const item = new Item({
         item: newItem
@@ -105,12 +114,46 @@ app.post('/delete', (req,res) => {
 // })
 
 app.get('/:newList', (req, res) => {
-    const newList = req.params.newList
+    const newList = req.params.newList;
 
-    
-    // res.render('list', {
-    //     listType: req.params.newList,
+    List.findOne({name: newList}, (err, foundList) => {
+        if (!err) {
+            if(!foundList) {
+                const list = new List({
+                    name: newList,
+                    items: defaultItems
+                })
+            
+                list.save()     
+                res.redirect('/' + newList)
+            } else {
+                res.render('list', {
+                    listType: newList,
+                    dailyList: foundList.items
+                })
+            }
+        }
+    })
+
+    //Crude answer
+    // List.find({name: newList}, (err, results) => {
+
+    //     if (results.length !== 0) {
+    //         console.log("List already Exists");
+    //         console.log(results);
+    //     } else {
+    //         const list = new List({
+    //             name: newList,
+    //             items: defaultItems
+    //         })
+        
+    //         list.save()     
+    //         console.log('New list created');   
+    //     }
+
     // })
+    
+    
 })
 
 
