@@ -3,6 +3,7 @@ const bodyParser = require('body-parser')
 // Here I am trying to link this app to a database using MongoDB and Mongoose
 // the code line below is used to require mongoose after it has been installed by npm
 const mongoose = require('mongoose')
+const _ = require('lodash')
 
 const app = express()
 app.set('view engine', 'ejs')
@@ -89,21 +90,40 @@ app.post('/', (req, res) => {
         item: newItem
     })
 
-    item.save()
+    if (listName === 'Today') {
+        item.save()
+        res.redirect('/')
+    } else {
+        List.findOne({name: listName}, (err, foundList) => {
+            foundList.items.push(item)
+            foundList.save();
+            res.redirect('/' + listName)
+        })
+    }
 
-    res.redirect('/')
 })
 
 app.post('/delete', (req,res) => {
     const checkedItemID = req.body.checkbox;
-    Item.findByIdAndRemove(checkedItemID, (err) => {
-        if (err) {
-            console.log(err);
-        } else {
-            console.log('Sucessfully deleted item!');
-        }
-    })
-    res.redirect('/')
+    const listName = req.body.listName;
+
+    if (listName === 'Today') {
+        Item.findByIdAndRemove(checkedItemID, (err) => {
+            if (err) {
+                console.log(err);
+            } else {
+                console.log('Sucessfully deleted item!');
+            }
+        })
+        res.redirect('/')
+    } else {
+        List.findOneAndUpdate({name: listName},{$pull: {_id: checkedItemID}},(err, foundList) => {
+            if(!err) {
+                res.redirect('/' + listName)
+            }
+        })
+    }
+
 })
 
 // app.get('/work', (req, res) => {
@@ -114,7 +134,7 @@ app.post('/delete', (req,res) => {
 // })
 
 app.get('/:newList', (req, res) => {
-    const newList = req.params.newList;
+    const newList = _.capitalize(req.params.newList);
 
     List.findOne({name: newList}, (err, foundList) => {
         if (!err) {
